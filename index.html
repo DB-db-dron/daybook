@@ -111,6 +111,20 @@
 
         .picker-container { position: relative; display: flex; align-items: center; cursor: pointer; }
         .native-picker { position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+
+        /* CUSTOM MODAL OVERLAY */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
     </style>
 </head>
 <body>
@@ -119,20 +133,16 @@
         
         <!-- DASHBOARD VIEW -->
         <div id="view-dashboard" class="view active">
-            <!-- NEW NAVBAR -->
             <header class="bg-white border-b p-4 flex items-center justify-between sticky top-0 z-50">
                 <div class="flex items-center">
-                    <!-- Bars icon removed -->
                     <h1 class="font-bold text-xl text-indigo-700 tracking-tight">DayBook</h1>
                 </div>
                 <div class="flex items-center space-x-6">
-                    <button onclick="clearAllData()" class="text-red-500 font-bold text-sm uppercase tracking-wide">Clear</button>
-                    <!-- Ellipsis icon removed -->
+                    <button onclick="showClearConfirm()" class="text-red-500 font-bold text-sm uppercase tracking-wide">Clear</button>
                 </div>
             </header>
 
             <main class="flex-1 overflow-y-auto bg-gray-50 pb-32">
-                <!-- Summary Card -->
                 <div class="bg-white border-b p-4">
                     <div class="flex justify-between items-center mb-3">
                         <span class="text-gray-800 font-bold">Net Balance</span>
@@ -147,7 +157,6 @@
                         <span class="text-gray-600 text-sm font-medium">Total Out (-)</span>
                         <span id="summary-out" class="cash-out-text font-bold">0</span>
                     </div>
-                    <!-- Share Button -->
                     <button onclick="downloadCSV()" class="w-full mt-4 py-3 border-t text-blue-700 font-bold uppercase tracking-wider text-sm flex items-center justify-center">
                         SHARE <i class="fa-solid fa-share-nodes ml-2 text-xs"></i>
                     </button>
@@ -264,7 +273,7 @@
                     <label>Item Name *</label>
                 </div>
                 <div class="outlined-input-container">
-                    <input type="text" id="modal-item-code" class="outlined-input" placeholder=" ">
+                    <input type="text" id="modal-item-code" class="outlined-input" placeholder=" " oninput="validateItemCode(this)">
                     <label>Item Code</label>
                 </div>
                 <div class="outlined-input-container">
@@ -280,17 +289,27 @@
 
     </div>
 
-    <script>
-        // PERSISTENCE KEY
-        const STORAGE_KEY = 'daybook_entries_data';
+    <!-- CUSTOM CONFIRMATION MODAL -->
+    <div id="clear-confirm-modal" class="modal-overlay">
+        <div class="bg-white rounded-lg p-6 max-w-[85vw] shadow-2xl">
+            <h3 class="font-bold text-gray-800 text-lg mb-2">Delete All Entries?</h3>
+            <p class="text-gray-500 text-sm mb-6">This action cannot be undone. All your financial records will be permanently deleted.</p>
+            <div class="flex justify-end space-x-4">
+                <button onclick="hideClearConfirm()" class="text-gray-600 font-bold text-sm uppercase tracking-wide px-4 py-2">Cancel</button>
+                <button onclick="confirmClearAllData()" class="text-red-600 font-bold text-sm uppercase tracking-wide px-4 py-2">Delete All</button>
+            </div>
+        </div>
+    </div>
 
-        // Load entries from localStorage or empty array
+    <script>
+        const STORAGE_KEY = 'daybook_entries_data';
         let entries = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
         
         let currentEntryItems = [];
         let currentType = 'out';
         let currentCategory = "No Category";
         let currentPaymentMode = "Cash";
+        let editingEntryId = null;
 
         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -303,17 +322,29 @@
             { label: 'Cash Online exchange 💱' }
         ];
 
-        // Persistence Helper
         function saveToLocalStorage() {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
         }
 
-        function clearAllData() {
-            if(confirm("Are you sure you want to delete ALL entries? This cannot be undone.")) {
-                entries = [];
-                saveToLocalStorage();
-                renderDashboard();
-            }
+        function showClearConfirm() {
+            document.getElementById('clear-confirm-modal').style.display = 'flex';
+        }
+
+        function hideClearConfirm() {
+            document.getElementById('clear-confirm-modal').style.display = 'none';
+        }
+
+        function confirmClearAllData() {
+            entries = [];
+            saveToLocalStorage();
+            renderDashboard();
+            hideClearConfirm();
+        }
+
+        function validateItemCode(input) {
+            let val = input.value.toUpperCase();
+            val = val.replace(/[^PRICELASTO0]/g, '');
+            input.value = val;
         }
 
         function navigateTo(viewName) {
@@ -322,12 +353,6 @@
             if(target) target.classList.add('active');
             
             if (viewName === 'category') renderCategoryCards();
-            if (viewName === 'add-item') {
-                document.getElementById('modal-item-name').value = "";
-                document.getElementById('modal-item-code').value = "";
-                document.getElementById('modal-item-price').value = "";
-                setTimeout(() => document.getElementById('modal-item-name').focus(), 100);
-            }
         }
 
         function renderCategoryCards() {
@@ -346,25 +371,52 @@
             navigateTo('form');
         }
 
-        function openForm(type) {
-            currentType = type;
-            currentEntryItems = [];
-            currentCategory = "No Category";
-            document.getElementById('input-amount').value = "";
-            document.getElementById('input-remark').value = "";
-            document.getElementById('display-category').value = currentCategory;
+        function openForm(type, id = null) {
+            editingEntryId = id;
+            
+            if (id) {
+                const entry = entries.find(e => e.id === id);
+                currentType = entry.type;
+                currentEntryItems = JSON.parse(JSON.stringify(entry.items));
+                currentCategory = entry.category;
+                currentPaymentMode = entry.mode;
+                
+                document.getElementById('input-amount').value = entry.amount;
+                document.getElementById('input-remark').value = entry.remark;
+                document.getElementById('display-category').value = entry.category;
+                
+                const dParts = entry.date.split('/');
+                document.getElementById('input-date-native').value = `${dParts[2]}-${dParts[1]}-${dParts[0]}`;
+                
+                const tMatch = entry.time.match(/(\d+):(\d+)\s*(am|pm)/i);
+                if (tMatch) {
+                    let h = parseInt(tMatch[1]);
+                    if (tMatch[3].toLowerCase() === 'pm' && h < 12) h += 12;
+                    if (tMatch[3].toLowerCase() === 'am' && h === 12) h = 0;
+                    document.getElementById('input-time-native').value = `${String(h).padStart(2, '0')}:${tMatch[2]}`;
+                }
+
+                document.getElementById('form-title').innerText = currentType === 'in' ? "Edit Cash In Entry" : "Edit Cash Out Entry";
+            } else {
+                currentType = type;
+                currentEntryItems = [];
+                currentCategory = "No Category";
+                currentPaymentMode = "Cash";
+                document.getElementById('input-amount').value = "";
+                document.getElementById('input-remark').value = "";
+                document.getElementById('display-category').value = currentCategory;
+                
+                const now = new Date();
+                document.getElementById('input-date-native').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                document.getElementById('input-time-native').value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                
+                document.getElementById('form-title').innerText = type === 'in' ? "Add Cash In Entry" : "Add Cash Out Entry";
+            }
             
             const title = document.getElementById('form-title');
-            title.innerText = type === 'in' ? "Add Cash In Entry" : "Add Cash Out Entry";
-            title.className = `font-bold text-lg ${type === 'in' ? 'text-green-700' : 'text-red-600'}`;
+            title.className = `font-bold text-lg ${currentType === 'in' ? 'text-green-700' : 'text-red-600'}`;
 
-            const now = new Date();
-            const y = now.getFullYear();
-            const m = String(now.getMonth() + 1).padStart(2, '0');
-            const d = String(now.getDate()).padStart(2, '0');
-            document.getElementById('input-date-native').value = `${y}-${m}-${d}`;
-            document.getElementById('input-time-native').value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
+            setPaymentMode(currentPaymentMode);
             updateTimestampDisplay();
             renderEntryItems();
             navigateTo('form');
@@ -380,7 +432,9 @@
             if(timeVal) {
                 const parts = timeVal.split(':');
                 let h = parseInt(parts[0]);
-                document.getElementById('display-time').innerText = `${h % 12 || 12}:${parts[1]} ${h >= 12 ? 'pm' : 'am'}`;
+                const ampm = h >= 12 ? 'pm' : 'am';
+                let displayH = h % 12 || 12;
+                document.getElementById('display-time').innerText = `${displayH}:${parts[1]} ${ampm}`;
             }
         }
 
@@ -396,9 +450,7 @@
             if (!name) return;
             
             currentEntryItems.push({ id: Date.now(), name, price, code });
-            
-            const total = currentEntryItems.reduce((acc, item) => acc + item.price, 0);
-            document.getElementById('input-amount').value = total;
+            document.getElementById('input-amount').value = currentEntryItems.reduce((acc, item) => acc + item.price, 0);
 
             nameEl.value = "";
             codeEl.value = "";
@@ -432,21 +484,46 @@
 
         function setPaymentMode(mode) {
             currentPaymentMode = mode;
-            document.getElementById('pay-mode-cash').className = mode === 'Cash' ? "px-5 py-2 rounded-full bg-blue-700 text-white text-sm font-medium border border-blue-700" : "px-5 py-2 rounded-full bg-gray-100 text-gray-600 text-sm font-medium border border-gray-100";
-            document.getElementById('pay-mode-paytm').className = mode === 'Paytm' ? "px-5 py-2 rounded-full bg-blue-700 text-white text-sm font-medium border border-blue-700" : "px-5 py-2 rounded-full bg-gray-100 text-gray-600 text-sm font-medium border border-gray-100";
+            const cashBtn = document.getElementById('pay-mode-cash');
+            const paytmBtn = document.getElementById('pay-mode-paytm');
+            
+            if(mode === 'Cash') {
+                cashBtn.className = "px-5 py-2 rounded-full bg-blue-700 text-white text-sm font-medium border border-blue-700";
+                paytmBtn.className = "px-5 py-2 rounded-full bg-gray-100 text-gray-600 text-sm font-medium border border-gray-100";
+            } else {
+                cashBtn.className = "px-5 py-2 rounded-full bg-gray-100 text-gray-600 text-sm font-medium border border-gray-100";
+                paytmBtn.className = "px-5 py-2 rounded-full bg-blue-700 text-white text-sm font-medium border border-blue-700";
+            }
         }
 
         function saveEntry() {
             const amt = parseFloat(document.getElementById('input-amount').value);
             if (!amt) return;
-            entries.push({
-                type: currentType, amount: amt, remark: document.getElementById('input-remark').value,
-                category: currentCategory, items: [...currentEntryItems], date: document.getElementById('display-date').innerText,
-                time: document.getElementById('display-time').innerText, mode: currentPaymentMode, timestamp: Date.now()
-            });
-            saveToLocalStorage(); // PERSIST
+
+            const entryData = {
+                type: currentType, 
+                amount: amt, 
+                remark: document.getElementById('input-remark').value,
+                category: currentCategory, 
+                items: [...currentEntryItems], 
+                date: document.getElementById('display-date').innerText,
+                time: document.getElementById('display-time').innerText, 
+                mode: currentPaymentMode, 
+                timestamp: editingEntryId ? entries.find(e => e.id === editingEntryId).timestamp : Date.now(),
+                id: editingEntryId || Date.now()
+            };
+
+            if (editingEntryId) {
+                const index = entries.findIndex(e => e.id === editingEntryId);
+                entries[index] = entryData;
+            } else {
+                entries.push(entryData);
+            }
+
+            saveToLocalStorage();
             renderDashboard();
             navigateTo('dashboard');
+            editingEntryId = null;
         }
 
         function renderDashboard() {
@@ -464,6 +541,7 @@
             let running = 0;
             let totalIn = 0;
             let totalOut = 0;
+            
             const chronological = [...entries].sort((a,b) => a.timestamp - b.timestamp);
             chronological.forEach(e => {
                 if(e.type === 'in') { running += e.amount; totalIn += e.amount; }
@@ -491,10 +569,11 @@
                     html += `<div class="p-4 text-xs font-bold text-gray-500">${dateString}</div>`;
                 }
 
-                const itemDetails = e.items.map(i => `${i.name}|${i.code||''}|${i.price}`).join('\n');
+                // Changed separator from | to @ as requested
+                const itemDetails = e.items.map(i => `${i.name}@${i.code||''}@${i.price}`).join('\n');
 
                 html += `
-                <div class="bg-white p-4 mb-2 shadow-sm">
+                <div class="bg-white p-4 mb-2 shadow-sm cursor-pointer active:bg-gray-50 transition-colors" onclick="openForm(null, ${e.id})">
                     <div class="flex justify-between items-start mb-2">
                         <div class="flex gap-2">
                             <span class="tag-category">${e.category}</span>
@@ -509,15 +588,15 @@
                     </div>
                     ${itemDetails ? `<div class="text-sm text-gray-700 whitespace-pre-line mb-2">${itemDetails}</div>` : ''}
                     ${e.remark ? `<div class="text-sm text-gray-600 italic mb-2">Remarks: ${e.remark}</div>` : ''}
-                    <div class="text-[11px] text-blue-700 mt-2 pt-2 border-t border-gray-50">
-                        <span class="font-bold">Entry by You</span> at ${e.time}
+                    <div class="text-[11px] text-blue-700 mt-2 pt-2 border-t border-gray-50 flex justify-between items-center">
+                        <span><span class="font-bold">Entry by You</span> at ${e.time}</span>
+                        <i class="fa-solid fa-pen text-[9px] opacity-30"></i>
                     </div>
                 </div>`;
             });
             list.innerHTML = html;
         }
 
-        // CSV Helper to format date as dd MMM yyyy
         function formatCSVDate(dateStr) {
             const [d, m, y] = dateStr.split('/');
             const monthName = months[parseInt(m) - 1];
@@ -526,20 +605,17 @@
 
         function downloadCSV() {
             if (entries.length === 0) return;
-
             const headers = ["Date", "Time", "Remark", "Category", "Mode", "Cash In", "Cash Out"];
-            
             const escape = (val) => {
                 if (val === undefined || val === null) return '""';
                 let str = String(val);
                 str = str.replace(/"/g, '""');
                 return `"${str}"`;
             };
-
             const rows = [...entries].sort((a,b) => a.timestamp - b.timestamp).map(e => {
-                const itemDetails = e.items.map(i => `${i.name}|${i.code||''}|${i.price}`).join('\n');
+                // Changed separator from | to @ as requested
+                const itemDetails = e.items.map(i => `${i.name}@${i.code||''}@${i.price}`).join('\n');
                 const finalRemark = itemDetails + (e.remark ? `\n\nRemarks: ${e.remark}` : "");
-                
                 return [
                     escape(formatCSVDate(e.date)),
                     escape(e.time.toUpperCase()), 
@@ -550,12 +626,10 @@
                     e.type === 'out' ? e.amount : ""
                 ].join(",");
             });
-
             const csvContent = [headers.join(","), ...rows].join("\n");
             const BOM = "\uFEFF";
             const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8;" });
             const url = URL.createObjectURL(blob);
-            
             const link = document.createElement("a");
             link.setAttribute("href", url);
             link.setAttribute("download", `Daybook_Export_${new Date().toISOString().split('T')[0]}.csv`);
@@ -564,7 +638,6 @@
             document.body.removeChild(link);
         }
 
-        // INITIAL RENDER
         window.onload = renderDashboard;
     </script>
 </body>
