@@ -32,6 +32,7 @@
         .cash-in-bg { background-color: #1b5e20; }
         .cash-out-bg { background-color: #c62828; }
 
+        /* Material Outlined Input Style */
         .outlined-input-container {
             position: relative;
             margin-top: 10px;
@@ -58,7 +59,9 @@
             background: white;
         }
         .outlined-input:focus { border-color: #4863d4 !important; }
+        .outlined-input.error { border-color: #ef4444 !important; }
 
+        /* Tag Styles */
         .tag-category {
             background-color: #f0f2ff;
             color: #3f51b5;
@@ -110,6 +113,7 @@
         .picker-container { position: relative; display: flex; align-items: center; cursor: pointer; }
         .native-picker { position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
 
+        /* CUSTOM MODAL OVERLAY */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -131,9 +135,27 @@
             justify-content: space-between;
             align-items: center;
         }
+
+        #validation-msg {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ef4444;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: bold;
+            display: none;
+            z-index: 2000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
     </style>
 </head>
 <body>
+
+    <div id="validation-msg">Please fill all required fields</div>
 
     <div id="app-container">
         
@@ -233,7 +255,7 @@
                     <div id="items-container" class="space-y-2 mb-4"></div>
                 </div>
 
-                <div class="outlined-input-container">
+                <div class="outlined-input-container" id="container-amount">
                     <input type="number" id="input-amount" class="outlined-input" placeholder=" " inputmode="decimal">
                     <label>Amount *</label>
                 </div>
@@ -243,14 +265,14 @@
                     <label>Remark</label>
                 </div>
 
-                <div class="outlined-input-container" onclick="navigateTo('category')">
+                <div class="outlined-input-container" id="container-category" onclick="navigateTo('category')">
                     <input type="text" id="display-category" class="outlined-input cursor-pointer" readonly placeholder=" ">
-                    <label>Category</label>
+                    <label>Category *</label>
                     <i class="fa-solid fa-caret-down absolute right-4 top-4 text-gray-400"></i>
                 </div>
 
-                <div>
-                    <p class="text-xs font-bold text-gray-400 mb-2 uppercase">Payment Mode</p>
+                <div id="container-mode">
+                    <p class="text-xs font-bold text-gray-400 mb-2 uppercase">Payment Mode *</p>
                     <div id="payment-modes-container" class="flex flex-wrap gap-2"></div>
                 </div>
             </main>
@@ -352,7 +374,7 @@
         let currentEntryItems = [];
         let currentType = 'out';
         let currentCategory = "No Category";
-        let currentPaymentMode = "Cash";
+        let currentPaymentMode = null; 
         let editingEntryId = null;
 
         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -386,6 +408,13 @@
             input.value = val;
         }
 
+        function showToast(msg) {
+            const el = document.getElementById('validation-msg');
+            el.innerText = msg;
+            el.style.display = 'block';
+            setTimeout(() => { el.style.display = 'none'; }, 2000);
+        }
+
         function navigateTo(viewName) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             const target = document.getElementById('view-' + viewName);
@@ -396,6 +425,8 @@
             if (viewName === 'dashboard') {
                 editingEntryId = null;
                 document.getElementById('btn-delete-entry').classList.add('hidden');
+                document.getElementById('input-amount').classList.remove('error');
+                document.getElementById('display-category').classList.remove('error');
             }
         }
 
@@ -448,6 +479,7 @@
         function selectCategory(label) {
             currentCategory = label;
             document.getElementById('display-category').value = label;
+            document.getElementById('display-category').classList.remove('error');
             navigateTo('form');
         }
 
@@ -490,11 +522,11 @@
             } else {
                 currentType = type;
                 currentEntryItems = [];
-                currentCategory = prefs.categories[0] || "No Category";
-                currentPaymentMode = prefs.paymentModes[0] || "Cash";
+                currentCategory = "No Category"; 
+                currentPaymentMode = null; 
                 document.getElementById('input-amount').value = "";
                 document.getElementById('input-remark').value = "";
-                document.getElementById('display-category').value = currentCategory;
+                document.getElementById('display-category').value = ""; 
                 const now = new Date();
                 document.getElementById('input-date-native').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
                 document.getElementById('input-time-native').value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -577,8 +609,36 @@
         }
 
         function saveEntry() {
-            const amt = parseFloat(document.getElementById('input-amount').value);
-            if (!amt) return;
+            const amtInput = document.getElementById('input-amount');
+            const catInput = document.getElementById('display-category');
+            
+            // NEW VALIDATION LOGIC: Check if empty string instead of truthy number
+            let hasError = false;
+            if (amtInput.value.trim() === "") {
+                amtInput.classList.add('error');
+                hasError = true;
+            } else {
+                amtInput.classList.remove('error');
+            }
+
+            if (!currentCategory || currentCategory === "No Category") {
+                catInput.classList.add('error');
+                hasError = true;
+            } else {
+                catInput.classList.remove('error');
+            }
+
+            if (!currentPaymentMode) {
+                hasError = true;
+            }
+
+            if (hasError) {
+                showToast("Amount, Category and Mode are required!");
+                return;
+            }
+
+            const amt = parseFloat(amtInput.value);
+
             const entryData = {
                 type: currentType, 
                 amount: amt, 
@@ -680,16 +740,11 @@
             };
             const rows = [...entries].sort((a,b) => a.timestamp - b.timestamp).map(e => {
                 const itemDetails = e.items.map(i => `${i.name}@${i.code||''}@${i.price}`).join('\n');
-                
-                // NEW SANITIZATION LOGIC
                 const itemBlock = itemDetails ? itemDetails : "";
                 const remarkBlock = e.remark ? `Remarks: ${e.remark}` : "";
                 const finalRemark = (itemBlock && remarkBlock) ? `${itemBlock}\n\n${remarkBlock}` : (itemBlock || remarkBlock);
-
-                // Check for placeholder "No Category"
                 const csvCategory = (e.category === "No Category" || !e.category) ? "" : e.category;
                 const csvMode = !e.mode ? "" : e.mode;
-
                 return [
                     escape(formatCSVDate(e.date)),
                     escape(e.time.toUpperCase()), 
