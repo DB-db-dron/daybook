@@ -125,6 +125,16 @@
             align-items: center;
             z-index: 1000;
         }
+
+        /* Settings List Items */
+        .settings-item {
+            background: white;
+            padding: 12px 16px;
+            border-bottom: 1px solid #f3f4f6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
@@ -137,7 +147,8 @@
                 <div class="flex items-center">
                     <h1 class="font-bold text-xl text-indigo-700 tracking-tight">DayBook</h1>
                 </div>
-                <div class="flex items-center space-x-6">
+                <div class="flex items-center space-x-4">
+                    <button onclick="navigateTo('settings')" class="text-gray-400"><i class="fa-solid fa-gear text-lg"></i></button>
                     <button onclick="showClearConfirm()" class="text-red-500 font-bold text-sm uppercase tracking-wide">Clear</button>
                 </div>
             </header>
@@ -195,7 +206,9 @@
                     <button onclick="navigateTo('dashboard')" class="fa-solid fa-arrow-left mr-4 text-gray-600 text-lg"></button>
                     <h1 id="form-title" class="font-bold text-lg">Add Entry</h1>
                 </div>
-                <i class="fa-solid fa-gear text-blue-600 text-lg"></i>
+                <button onclick="navigateTo('settings')" class="text-blue-600">
+                    <i class="fa-solid fa-gear text-lg"></i>
+                </button>
             </header>
 
             <main class="flex-1 overflow-y-auto bg-white p-4 pb-24 space-y-4">
@@ -237,9 +250,8 @@
 
                 <div>
                     <p class="text-xs font-bold text-gray-400 mb-2 uppercase">Payment Mode</p>
-                    <div class="flex gap-2">
-                        <div id="pay-mode-cash" onclick="setPaymentMode('Cash')" class="px-5 py-2 rounded-full bg-blue-700 text-white text-sm font-medium border border-blue-700">Cash</div>
-                        <div id="pay-mode-paytm" onclick="setPaymentMode('Paytm')" class="px-5 py-2 rounded-full bg-gray-100 text-gray-600 text-sm font-medium border border-gray-100">Paytm Business</div>
+                    <div id="payment-modes-container" class="flex flex-wrap gap-2">
+                        <!-- Dynamic payment modes injected here -->
                     </div>
                 </div>
             </main>
@@ -252,9 +264,12 @@
 
         <!-- CATEGORY SELECTION VIEW -->
         <div id="view-category" class="view">
-            <header class="bg-white border-b p-4 flex items-center">
-                <button onclick="navigateTo('form')" class="fa-solid fa-arrow-left mr-6 text-gray-700 text-lg"></button>
-                <h1 class="font-bold text-lg text-gray-800">Choose Category</h1>
+            <header class="bg-white border-b p-4 flex items-center justify-between">
+                <div class="flex items-center">
+                    <button onclick="navigateTo('form')" class="fa-solid fa-arrow-left mr-6 text-gray-700 text-lg"></button>
+                    <h1 class="font-bold text-lg text-gray-800">Choose Category</h1>
+                </div>
+                <button onclick="navigateTo('settings')" class="text-blue-600"><i class="fa-solid fa-gear"></i></button>
             </header>
             <main class="flex-1 overflow-y-auto p-4">
                 <div id="category-cards-container"></div>
@@ -287,6 +302,33 @@
             </footer>
         </div>
 
+        <!-- SETTINGS VIEW (NEW) -->
+        <div id="view-settings" class="view">
+            <header class="bg-white border-b p-4 flex items-center">
+                <button onclick="navigateTo('dashboard')" class="fa-solid fa-arrow-left mr-6 text-gray-700 text-lg"></button>
+                <h1 class="font-bold text-lg text-gray-800">Preferences</h1>
+            </header>
+            <main class="flex-1 overflow-y-auto p-4 space-y-8">
+                <!-- Categories Management -->
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="font-bold text-gray-600 uppercase text-xs">Manage Categories</h2>
+                        <button onclick="promptAddItem('category')" class="text-blue-600 text-xs font-bold">+ ADD NEW</button>
+                    </div>
+                    <div id="settings-categories-list" class="rounded-lg overflow-hidden border"></div>
+                </div>
+
+                <!-- Payment Modes Management -->
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="font-bold text-gray-600 uppercase text-xs">Manage Payment Modes</h2>
+                        <button onclick="promptAddItem('mode')" class="text-blue-600 text-xs font-bold">+ ADD NEW</button>
+                    </div>
+                    <div id="settings-modes-list" class="rounded-lg overflow-hidden border"></div>
+                </div>
+            </main>
+        </div>
+
     </div>
 
     <!-- CUSTOM CONFIRMATION MODAL -->
@@ -303,7 +345,15 @@
 
     <script>
         const STORAGE_KEY = 'daybook_entries_data';
+        const PREFS_KEY = 'daybook_preferences';
+
         let entries = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        
+        // Initialize Preferences from Storage or Defaults
+        let prefs = JSON.parse(localStorage.getItem(PREFS_KEY)) || {
+            categories: ['No Category', '📖 Due paid', 'Sports 🏋️', 'Studio 📷', 'Expense 📈', 'Cash Online exchange 💱'],
+            paymentModes: ['Cash', 'Paytm Business', 'Online', 'Bank Transfer']
+        };
         
         let currentEntryItems = [];
         let currentType = 'out';
@@ -313,17 +363,12 @@
 
         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-        const categories = [
-            { label: 'No Category' },
-            { label: '📖 Due paid' },
-            { label: 'Sports 🏋️' },
-            { label: 'Studio 📷' },
-            { label: 'Expense 📈' },
-            { label: 'Cash Online exchange 💱' }
-        ];
-
         function saveToLocalStorage() {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+        }
+
+        function savePrefs() {
+            localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
         }
 
         function showClearConfirm() {
@@ -353,14 +398,52 @@
             if(target) target.classList.add('active');
             
             if (viewName === 'category') renderCategoryCards();
+            if (viewName === 'settings') renderSettings();
+        }
+
+        // --- PREFERENCES UI LOGIC ---
+        function renderSettings() {
+            const catList = document.getElementById('settings-categories-list');
+            const modeList = document.getElementById('settings-modes-list');
+
+            catList.innerHTML = prefs.categories.map((cat, idx) => `
+                <div class="settings-item">
+                    <span class="text-sm font-medium text-gray-700">${cat}</span>
+                    <button onclick="removePrefItem('categories', ${idx})" class="text-red-400 p-2"><i class="fa-solid fa-trash-can"></i></button>
+                </div>
+            `).join('');
+
+            modeList.innerHTML = prefs.paymentModes.map((mode, idx) => `
+                <div class="settings-item">
+                    <span class="text-sm font-medium text-gray-700">${mode}</span>
+                    <button onclick="removePrefItem('paymentModes', ${idx})" class="text-red-400 p-2"><i class="fa-solid fa-trash-can"></i></button>
+                </div>
+            `).join('');
+        }
+
+        function promptAddItem(type) {
+            const name = prompt(`Enter new ${type === 'category' ? 'category' : 'payment mode'} name:`);
+            if (name && name.trim()) {
+                if (type === 'category') prefs.categories.push(name.trim());
+                else prefs.paymentModes.push(name.trim());
+                savePrefs();
+                renderSettings();
+            }
+        }
+
+        function removePrefItem(type, index) {
+            if (prefs[type].length <= 1) return; // Prevent empty lists
+            prefs[type].splice(index, 1);
+            savePrefs();
+            renderSettings();
         }
 
         function renderCategoryCards() {
             const container = document.getElementById('category-cards-container');
-            container.innerHTML = categories.map(cat => `
-                <div class="category-card ${currentCategory === cat.label ? 'selected' : ''}" onclick="selectCategory('${cat.label}')">
+            container.innerHTML = prefs.categories.map(cat => `
+                <div class="category-card ${currentCategory === cat ? 'selected' : ''}" onclick="selectCategory('${cat}')">
                     <div class="custom-radio"><div class="radio-dot"></div></div>
-                    <span class="text-gray-800 font-medium">${cat.label}</span>
+                    <span class="text-gray-800 font-medium">${cat}</span>
                 </div>
             `).join('');
         }
@@ -369,6 +452,17 @@
             currentCategory = label;
             document.getElementById('display-category').value = label;
             navigateTo('form');
+        }
+
+        function renderPaymentModes() {
+            const container = document.getElementById('payment-modes-container');
+            container.innerHTML = prefs.paymentModes.map(mode => `
+                <div id="pay-mode-${mode.replace(/\s+/g, '-').toLowerCase()}" 
+                     onclick="setPaymentMode('${mode}')" 
+                     class="px-5 py-2 rounded-full text-sm font-medium border transition-colors cursor-pointer ${currentPaymentMode === mode ? 'bg-blue-700 text-white border-blue-700' : 'bg-gray-100 text-gray-600 border-gray-100'}">
+                    ${mode}
+                </div>
+            `).join('');
         }
 
         function openForm(type, id = null) {
@@ -400,8 +494,8 @@
             } else {
                 currentType = type;
                 currentEntryItems = [];
-                currentCategory = "No Category";
-                currentPaymentMode = "Cash";
+                currentCategory = prefs.categories[0] || "No Category";
+                currentPaymentMode = prefs.paymentModes[0] || "Cash";
                 document.getElementById('input-amount').value = "";
                 document.getElementById('input-remark').value = "";
                 document.getElementById('display-category').value = currentCategory;
@@ -416,7 +510,7 @@
             const title = document.getElementById('form-title');
             title.className = `font-bold text-lg ${currentType === 'in' ? 'text-green-700' : 'text-red-600'}`;
 
-            setPaymentMode(currentPaymentMode);
+            renderPaymentModes();
             updateTimestampDisplay();
             renderEntryItems();
             navigateTo('form');
@@ -484,16 +578,7 @@
 
         function setPaymentMode(mode) {
             currentPaymentMode = mode;
-            const cashBtn = document.getElementById('pay-mode-cash');
-            const paytmBtn = document.getElementById('pay-mode-paytm');
-            
-            if(mode === 'Cash') {
-                cashBtn.className = "px-5 py-2 rounded-full bg-blue-700 text-white text-sm font-medium border border-blue-700";
-                paytmBtn.className = "px-5 py-2 rounded-full bg-gray-100 text-gray-600 text-sm font-medium border border-gray-100";
-            } else {
-                cashBtn.className = "px-5 py-2 rounded-full bg-gray-100 text-gray-600 text-sm font-medium border border-gray-100";
-                paytmBtn.className = "px-5 py-2 rounded-full bg-blue-700 text-white text-sm font-medium border border-blue-700";
-            }
+            renderPaymentModes();
         }
 
         function saveEntry() {
@@ -569,7 +654,6 @@
                     html += `<div class="p-4 text-xs font-bold text-gray-500">${dateString}</div>`;
                 }
 
-                // Changed separator from | to @ as requested
                 const itemDetails = e.items.map(i => `${i.name}@${i.code||''}@${i.price}`).join('\n');
 
                 html += `
@@ -613,7 +697,6 @@
                 return `"${str}"`;
             };
             const rows = [...entries].sort((a,b) => a.timestamp - b.timestamp).map(e => {
-                // Changed separator from | to @ as requested
                 const itemDetails = e.items.map(i => `${i.name}@${i.code||''}@${i.price}`).join('\n');
                 const finalRemark = itemDetails + (e.remark ? `\n\nRemarks: ${e.remark}` : "");
                 return [
