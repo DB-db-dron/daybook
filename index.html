@@ -235,13 +235,13 @@
                 <div class="flex border-b text-sm pb-3 justify-between text-gray-700">
                     <div class="picker-container">
                         <i class="fa-regular fa-calendar mr-2"></i> 
-                        <span id="display-date"></span>
-                        <input type="date" id="input-date-native" class="native-picker" onchange="updateTimestampDisplay('form')">
+                        <span id="form-display-date"></span>
+                        <input type="date" id="form-input-date-native" class="native-picker" onchange="updateTimestampDisplay('form')">
                     </div>
                     <div class="picker-container">
                         <i class="fa-regular fa-clock mr-2"></i> 
-                        <span id="display-time"></span>
-                        <input type="time" id="input-time-native" class="native-picker" onchange="updateTimestampDisplay('form')">
+                        <span id="form-display-time"></span>
+                        <input type="time" id="form-input-time-native" class="native-picker" onchange="updateTimestampDisplay('form')">
                     </div>
                 </div>
 
@@ -249,28 +249,28 @@
                     <button onclick="openAddItem('form')" class="add-item-btn mb-4">
                         <i class="fa-solid fa-plus mr-2 text-xs"></i> Add Item
                     </button>
-                    <div id="items-container" class="space-y-2 mb-4"></div>
+                    <div id="form-items-container" class="space-y-2 mb-4"></div>
                 </div>
 
-                <div class="outlined-input-container">
-                    <input type="number" id="input-amount" class="outlined-input" placeholder=" " inputmode="decimal">
+                <div class="outlined-input-container" id="container-amount">
+                    <input type="number" id="form-input-amount" class="outlined-input" placeholder=" " inputmode="decimal">
                     <label>Amount *</label>
                 </div>
 
                 <div class="outlined-input-container">
-                    <input type="text" id="input-remark" class="outlined-input" placeholder=" ">
+                    <input type="text" id="form-input-remark" class="outlined-input" placeholder=" ">
                     <label>Remark</label>
                 </div>
 
-                <div class="outlined-input-container" onclick="openCategorySelect('form')">
-                    <input type="text" id="display-category" class="outlined-input cursor-pointer" readonly placeholder=" ">
+                <div class="outlined-input-container" id="container-category" onclick="openCategorySelect('form')">
+                    <input type="text" id="form-display-category" class="outlined-input cursor-pointer" readonly placeholder=" ">
                     <label>Category *</label>
                     <i class="fa-solid fa-caret-down absolute right-4 top-4 text-gray-400"></i>
                 </div>
 
-                <div>
+                <div id="container-mode">
                     <p class="text-xs font-bold text-gray-400 mb-2 uppercase">Payment Mode *</p>
-                    <div id="payment-modes-container" class="flex flex-wrap gap-2"></div>
+                    <div id="form-payment-modes-container" class="flex flex-wrap gap-2"></div>
                 </div>
             </main>
 
@@ -553,14 +553,14 @@
 
         function selectCategory(label) {
             currentCategory = label;
-            const targetId = activeFormType === 'edit' ? 'edit-display-category' : 'display-category';
+            const targetId = activeFormType + '-display-category';
             document.getElementById(targetId).value = label;
             document.getElementById(targetId).classList.remove('error');
             navigateTo(activeFormType);
         }
 
         function renderPaymentModes() {
-            const containerId = activeFormType === 'edit' ? 'edit-payment-modes-container' : 'payment-modes-container';
+            const containerId = activeFormType + '-payment-modes-container';
             const container = document.getElementById(containerId);
             container.innerHTML = prefs.paymentModes.map(mode => `
                 <div onclick="setPaymentMode('${mode}')" 
@@ -577,13 +577,13 @@
             currentCategory = "No Category"; 
             currentPaymentMode = null; 
             
-            document.getElementById('input-amount').value = "";
-            document.getElementById('input-remark').value = "";
-            document.getElementById('display-category').value = ""; 
+            document.getElementById('form-input-amount').value = "";
+            document.getElementById('form-input-remark').value = "";
+            document.getElementById('form-display-category').value = ""; 
             
             const now = new Date();
-            document.getElementById('input-date-native').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-            document.getElementById('input-time-native').value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            document.getElementById('form-input-date-native').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            document.getElementById('form-input-time-native').value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
             
             const title = document.getElementById('form-title');
             title.innerText = type === 'in' ? "Add Cash In Entry" : "Add Cash Out Entry";
@@ -634,8 +634,13 @@
         }
 
         function updateTimestampDisplay(prefix) {
-            const dateVal = document.getElementById(prefix + '-input-date-native').value;
-            const timeVal = document.getElementById(prefix + '-input-time-native').value;
+            const dateInput = document.getElementById(prefix + '-input-date-native');
+            const timeInput = document.getElementById(prefix + '-input-time-native');
+            if (!dateInput || !timeInput) return;
+
+            const dateVal = dateInput.value;
+            const timeVal = timeInput.value;
+
             if(dateVal) {
                 const parts = dateVal.split('-');
                 document.getElementById(prefix + '-display-date').innerText = `${parts[2]}/${parts[1]}/${parts[0]}`;
@@ -660,7 +665,7 @@
 
             currentEntryItems.push({ id: Date.now(), name, price, code });
             
-            const targetAmtId = activeFormType === 'edit' ? 'edit-input-amount' : 'input-amount';
+            const targetAmtId = activeFormType + '-input-amount';
             document.getElementById(targetAmtId).value = currentEntryItems.reduce((acc, item) => acc + item.price, 0);
             
             nameEl.value = ""; codeEl.value = ""; priceEl.value = "";
@@ -669,8 +674,9 @@
         }
 
         function renderEntryItems() {
-            const containerId = activeFormType === 'edit' ? 'edit-items-container' : 'items-container';
+            const containerId = activeFormType + '-items-container';
             const container = document.getElementById(containerId);
+            if (!container) return;
             if (currentEntryItems.length === 0) { container.innerHTML = ''; return; }
             container.innerHTML = [...currentEntryItems].reverse().map((item, idx) => `
                 <div class="flex justify-between items-center p-3 bg-gray-50 rounded border border-gray-200">
@@ -687,7 +693,7 @@
 
         function removeItem(index) {
             currentEntryItems.splice(index, 1);
-            const targetAmtId = activeFormType === 'edit' ? 'edit-input-amount' : 'input-amount';
+            const targetAmtId = activeFormType + '-input-amount';
             document.getElementById(targetAmtId).value = currentEntryItems.reduce((acc, i) => acc + i.price, 0) || "";
             renderEntryItems();
         }
@@ -698,8 +704,8 @@
         }
 
         function saveEntry(prefix) {
-            const amtInput = document.getElementById(prefix === 'edit' ? 'edit-input-amount' : 'input-amount');
-            const catInput = document.getElementById(prefix === 'edit' ? 'edit-display-category' : 'display-category');
+            const amtInput = document.getElementById(prefix + '-input-amount');
+            const catInput = document.getElementById(prefix + '-display-category');
             
             let hasError = false;
             if (amtInput.value.trim() === "") {
@@ -726,18 +732,18 @@
             }
 
             const amt = parseFloat(amtInput.value);
-            const dateStr = document.getElementById(prefix === 'edit' ? 'edit-input-date-native' : 'input-date-native').value;
-            const timeStr = document.getElementById(prefix === 'edit' ? 'edit-input-time-native' : 'input-time-native').value;
+            const dateStr = document.getElementById(prefix + '-input-date-native').value;
+            const timeStr = document.getElementById(prefix + '-input-time-native').value;
             const newTimestamp = new Date(`${dateStr}T${timeStr}`).getTime();
 
             const entryData = {
                 type: currentType, 
                 amount: amt, 
-                remark: document.getElementById(prefix === 'edit' ? 'edit-input-remark' : 'input-remark').value,
+                remark: document.getElementById(prefix + '-input-remark').value,
                 category: currentCategory, 
                 items: [...currentEntryItems], 
-                date: document.getElementById(prefix === 'edit' ? 'edit-display-date' : 'display-date').innerText,
-                time: document.getElementById(prefix === 'edit' ? 'edit-display-time' : 'display-time').innerText, 
+                date: document.getElementById(prefix + '-display-date').innerText,
+                time: document.getElementById(prefix + '-display-time').innerText, 
                 mode: currentPaymentMode, 
                 timestamp: newTimestamp,
                 id: editingEntryId || Date.now()
