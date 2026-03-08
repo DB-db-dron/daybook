@@ -278,8 +278,7 @@
             </main>
 
             <footer class="fixed-bottom flex border-t">
-                <button class="flex-1 py-4 border-r text-blue-800 font-bold text-sm">SAVE & ADD NEW</button>
-                <button onclick="saveEntry()" class="flex-1 py-4 bg-indigo-600 text-white font-bold text-sm">SAVE</button>
+                <button onclick="saveEntry()" class="w-full py-4 bg-indigo-600 text-white font-bold text-sm uppercase tracking-wider">SAVE</button>
             </footer>
         </div>
 
@@ -499,27 +498,37 @@
             const delBtn = document.getElementById('btn-delete-entry');
             
             if (id) {
+                // POPULATE EXISTING DATA
                 const entry = entries.find(e => e.id === id);
                 if (!entry) return;
+                
                 currentType = entry.type;
                 currentEntryItems = JSON.parse(JSON.stringify(entry.items));
                 currentCategory = entry.category;
                 currentPaymentMode = entry.mode;
+                
                 document.getElementById('input-amount').value = entry.amount;
                 document.getElementById('input-remark').value = entry.remark;
                 document.getElementById('display-category').value = entry.category;
-                const dParts = entry.date.split('/');
-                document.getElementById('input-date-native').value = `${dParts[2]}-${dParts[1]}-${dParts[0]}`;
-                const tMatch = entry.time.match(/(\d+):(\d+)\s*(am|pm)/i);
-                if (tMatch) {
-                    let h = parseInt(tMatch[1]);
-                    if (tMatch[3].toLowerCase() === 'pm' && h < 12) h += 12;
-                    if (tMatch[3].toLowerCase() === 'am' && h === 12) h = 0;
-                    document.getElementById('input-time-native').value = `${String(h).padStart(2, '0')}:${tMatch[2]}`;
-                }
+                
+                // POPULATE EXISTING TIME AND DATE
+                const dt = new Date(entry.timestamp);
+                
+                // YYYY-MM-DD for native picker
+                const y = dt.getFullYear();
+                const m = String(dt.getMonth() + 1).padStart(2, '0');
+                const d = String(dt.getDate()).padStart(2, '0');
+                document.getElementById('input-date-native').value = `${y}-${m}-${d}`;
+                
+                // HH:MM (24h) for native picker
+                const hh = String(dt.getHours()).padStart(2, '0');
+                const mm = String(dt.getMinutes()).padStart(2, '0');
+                document.getElementById('input-time-native').value = `${hh}:${mm}`;
+
                 document.getElementById('form-title').innerText = currentType === 'in' ? "Edit Cash In Entry" : "Edit Cash Out Entry";
                 delBtn.classList.remove('hidden');
             } else {
+                // NEW ENTRY - RESET FIELDS
                 currentType = type;
                 currentEntryItems = [];
                 currentCategory = "No Category"; 
@@ -527,14 +536,19 @@
                 document.getElementById('input-amount').value = "";
                 document.getElementById('input-remark').value = "";
                 document.getElementById('display-category').value = ""; 
+                
+                // DEFAULT TO CURRENT TIME/DATE
                 const now = new Date();
                 document.getElementById('input-date-native').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
                 document.getElementById('input-time-native').value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                
                 document.getElementById('form-title').innerText = type === 'in' ? "Add Cash In Entry" : "Add Cash Out Entry";
                 delBtn.classList.add('hidden');
             }
+            
             const title = document.getElementById('form-title');
             title.className = `font-bold text-lg ${currentType === 'in' ? 'text-green-700' : 'text-red-600'}`;
+
             renderPaymentModes();
             updateTimestampDisplay();
             renderEntryItems();
@@ -612,7 +626,6 @@
             const amtInput = document.getElementById('input-amount');
             const catInput = document.getElementById('display-category');
             
-            // NEW VALIDATION LOGIC: Check if empty string instead of truthy number
             let hasError = false;
             if (amtInput.value.trim() === "") {
                 amtInput.classList.add('error');
@@ -639,6 +652,11 @@
 
             const amt = parseFloat(amtInput.value);
 
+            // Construct timestamp from pickers to ensure visual/stored sync
+            const dateStr = document.getElementById('input-date-native').value;
+            const timeStr = document.getElementById('input-time-native').value;
+            const newTimestamp = new Date(`${dateStr}T${timeStr}`).getTime();
+
             const entryData = {
                 type: currentType, 
                 amount: amt, 
@@ -648,15 +666,17 @@
                 date: document.getElementById('display-date').innerText,
                 time: document.getElementById('display-time').innerText, 
                 mode: currentPaymentMode, 
-                timestamp: editingEntryId ? entries.find(e => e.id === editingEntryId).timestamp : Date.now(),
+                timestamp: newTimestamp, // Use value from pickers
                 id: editingEntryId || Date.now()
             };
+
             if (editingEntryId) {
                 const index = entries.findIndex(e => e.id === editingEntryId);
                 entries[index] = entryData;
             } else {
                 entries.push(entryData);
             }
+
             saveToLocalStorage();
             renderDashboard();
             navigateTo('dashboard');
