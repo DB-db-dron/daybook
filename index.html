@@ -186,7 +186,8 @@
                         <span class="text-gray-600 text-sm font-medium">Total Out (-)</span>
                         <span id="summary-out" class="cash-out-text font-bold">0</span>
                     </div>
-                    <button onclick="downloadCSV()" class="w-full mt-4 py-3 border-t text-blue-700 font-bold uppercase tracking-wider text-sm flex items-center justify-center">
+                    <!-- Share Button (Updated to handle Native Share or Download) -->
+                    <button onclick="handleShare()" class="w-full mt-4 py-3 border-t text-blue-700 font-bold uppercase tracking-wider text-sm flex items-center justify-center">
                         SHARE <i class="fa-solid fa-share-nodes ml-2 text-xs"></i>
                     </button>
                 </div>
@@ -252,7 +253,7 @@
                     <div id="form-items-container" class="space-y-2 mb-4"></div>
                 </div>
 
-                <div class="outlined-input-container" id="container-amount">
+                <div class="outlined-input-container">
                     <input type="number" id="form-input-amount" class="outlined-input" placeholder=" " inputmode="decimal">
                     <label>Amount *</label>
                 </div>
@@ -262,7 +263,7 @@
                     <label>Remark</label>
                 </div>
 
-                <div class="outlined-input-container" id="container-category" onclick="openCategorySelect('form')">
+                <div class="outlined-input-container" onclick="openCategorySelect('form')">
                     <input type="text" id="form-display-category" class="outlined-input cursor-pointer" readonly placeholder=" ">
                     <label>Category *</label>
                     <i class="fa-solid fa-caret-down absolute right-4 top-4 text-gray-400"></i>
@@ -430,7 +431,7 @@
 
         let entries = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
         let prefs = JSON.parse(localStorage.getItem(PREFS_KEY)) || {
-            categories: ['No Category', '📖 Due paid', 'Sports 🏋️', 'Studio 📷', 'Expense 📈', 'Cash Online exchange 💱'],
+            categories: ['No Category', '📖 Due paid', 'Sports 🏋️', 'Studio 📷', 'Expense 📈', 'Cash Online exchange ⒳'],
             paymentModes: ['Cash', 'Paytm Business', 'Online', 'Bank Transfer']
         };
         
@@ -439,7 +440,7 @@
         let currentCategory = "No Category";
         let currentPaymentMode = null; 
         let editingEntryId = null;
-        let activeFormType = 'form'; // 'form' or 'edit'
+        let activeFormType = 'form'; 
 
         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -491,7 +492,6 @@
             }
         }
 
-        // Parent-aware Navigation Helpers
         function openCategorySelect(parent) {
             activeFormType = parent;
             document.getElementById('cat-back-btn').onclick = () => navigateTo(parent);
@@ -828,8 +828,8 @@
             return `${d.padStart(2, '0')} ${monthName} ${y}`;
         }
 
-        function downloadCSV() {
-            if (entries.length === 0) return;
+        // Shared CSV Generation logic
+        function generateCSVContent() {
             const headers = ["Date", "Time", "Remark", "Category", "Mode", "Cash In", "Cash Out"];
             const escape = (val) => {
                 if (val === undefined || val === null) return '""';
@@ -854,13 +854,44 @@
                     e.type === 'out' ? e.amount : ""
                 ].join(",");
             });
-            const csvContent = [headers.join(","), ...rows].join("\n");
-            const BOM = "\uFEFF";
-            const blob = new Blob([BOM + csvContent], { type: "text/csv;charset=utf-8;" });
+            return "\uFEFF" + [headers.join(","), ...rows].join("\n");
+        }
+
+        // Handle native mobile sharing or desktop download
+        async function handleShare() {
+            if (entries.length === 0) return;
+            const csvContent = generateCSVContent();
+            const fileName = `Daybook_Export_${new Date().toISOString().split('T')[0]}.csv`;
+            
+            // Check if native sharing is available for files
+            if (navigator.canShare && navigator.share) {
+                try {
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+                    const file = new File([blob], fileName, { type: 'text/csv' });
+                    
+                    if (navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            files: [file],
+                            title: 'Daybook Export',
+                            text: 'Poledata Transaction Logs'
+                        });
+                        return; // Share successful
+                    }
+                } catch (err) {
+                    console.error('Share failed:', err);
+                }
+            }
+            
+            // Fallback to Download
+            downloadCSV(csvContent, fileName);
+        }
+
+        function downloadCSV(csvContent, fileName) {
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.setAttribute("href", url);
-            link.setAttribute("download", `Daybook_Export_${new Date().toISOString().split('T')[0]}.csv`);
+            link.setAttribute("download", fileName);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
