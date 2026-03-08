@@ -225,7 +225,69 @@
                     <h1 id="form-title" class="font-bold text-lg">Add Entry</h1>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <button id="btn-delete-entry" onclick="deleteCurrentEntry()" class="text-red-500 hidden">
+                    <button onclick="navigateTo('settings')" class="text-blue-600">
+                        <i class="fa-solid fa-gear text-lg"></i>
+                    </button>
+                </div>
+            </header>
+
+            <main class="flex-1 overflow-y-auto bg-white p-4 pb-24 space-y-4">
+                <div class="flex border-b text-sm pb-3 justify-between text-gray-700">
+                    <div class="picker-container">
+                        <i class="fa-regular fa-calendar mr-2"></i> 
+                        <span id="display-date"></span>
+                        <input type="date" id="input-date-native" class="native-picker" onchange="updateTimestampDisplay('form')">
+                    </div>
+                    <div class="picker-container">
+                        <i class="fa-regular fa-clock mr-2"></i> 
+                        <span id="display-time"></span>
+                        <input type="time" id="input-time-native" class="native-picker" onchange="updateTimestampDisplay('form')">
+                    </div>
+                </div>
+
+                <div>
+                    <button onclick="openAddItem('form')" class="add-item-btn mb-4">
+                        <i class="fa-solid fa-plus mr-2 text-xs"></i> Add Item
+                    </button>
+                    <div id="items-container" class="space-y-2 mb-4"></div>
+                </div>
+
+                <div class="outlined-input-container">
+                    <input type="number" id="input-amount" class="outlined-input" placeholder=" " inputmode="decimal">
+                    <label>Amount *</label>
+                </div>
+
+                <div class="outlined-input-container">
+                    <input type="text" id="input-remark" class="outlined-input" placeholder=" ">
+                    <label>Remark</label>
+                </div>
+
+                <div class="outlined-input-container" onclick="openCategorySelect('form')">
+                    <input type="text" id="display-category" class="outlined-input cursor-pointer" readonly placeholder=" ">
+                    <label>Category *</label>
+                    <i class="fa-solid fa-caret-down absolute right-4 top-4 text-gray-400"></i>
+                </div>
+
+                <div>
+                    <p class="text-xs font-bold text-gray-400 mb-2 uppercase">Payment Mode *</p>
+                    <div id="payment-modes-container" class="flex flex-wrap gap-2"></div>
+                </div>
+            </main>
+
+            <footer class="fixed-bottom flex border-t">
+                <button onclick="saveEntry('form')" class="w-full py-4 bg-indigo-600 text-white font-bold text-sm uppercase tracking-wider">SAVE</button>
+            </footer>
+        </div>
+
+        <!-- EDIT ENTRY VIEW (SEPARATE MODAL) -->
+        <div id="view-edit" class="view">
+            <header class="bg-white border-b p-4 flex items-center justify-between">
+                <div class="flex items-center">
+                    <button onclick="navigateTo('dashboard')" class="fa-solid fa-arrow-left mr-4 text-gray-600 text-lg"></button>
+                    <h1 id="edit-form-title" class="font-bold text-lg">Edit Entry</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="deleteCurrentEntry()" class="text-red-500">
                         <i class="fa-solid fa-trash-can text-lg"></i>
                     </button>
                     <button onclick="navigateTo('settings')" class="text-blue-600">
@@ -238,47 +300,47 @@
                 <div class="flex border-b text-sm pb-3 justify-between text-gray-700">
                     <div class="picker-container">
                         <i class="fa-regular fa-calendar mr-2"></i> 
-                        <span id="display-date"></span>
-                        <input type="date" id="input-date-native" class="native-picker" onchange="updateTimestampDisplay()">
+                        <span id="edit-display-date"></span>
+                        <input type="date" id="edit-input-date-native" class="native-picker" onchange="updateTimestampDisplay('edit')">
                     </div>
                     <div class="picker-container">
                         <i class="fa-regular fa-clock mr-2"></i> 
-                        <span id="display-time"></span>
-                        <input type="time" id="input-time-native" class="native-picker" onchange="updateTimestampDisplay()">
+                        <span id="edit-display-time"></span>
+                        <input type="time" id="edit-input-time-native" class="native-picker" onchange="updateTimestampDisplay('edit')">
                     </div>
                 </div>
 
                 <div>
-                    <button onclick="navigateTo('add-item')" class="add-item-btn mb-4">
+                    <button onclick="openAddItem('edit')" class="add-item-btn mb-4">
                         <i class="fa-solid fa-plus mr-2 text-xs"></i> Add Item
                     </button>
-                    <div id="items-container" class="space-y-2 mb-4"></div>
+                    <div id="edit-items-container" class="space-y-2 mb-4"></div>
                 </div>
 
-                <div class="outlined-input-container" id="container-amount">
-                    <input type="number" id="input-amount" class="outlined-input" placeholder=" " inputmode="decimal">
+                <div class="outlined-input-container">
+                    <input type="number" id="edit-input-amount" class="outlined-input" placeholder=" " inputmode="decimal">
                     <label>Amount *</label>
                 </div>
 
                 <div class="outlined-input-container">
-                    <input type="text" id="input-remark" class="outlined-input" placeholder=" ">
+                    <input type="text" id="edit-input-remark" class="outlined-input" placeholder=" ">
                     <label>Remark</label>
                 </div>
 
-                <div class="outlined-input-container" id="container-category" onclick="navigateTo('category')">
-                    <input type="text" id="display-category" class="outlined-input cursor-pointer" readonly placeholder=" ">
+                <div class="outlined-input-container" onclick="openCategorySelect('edit')">
+                    <input type="text" id="edit-display-category" class="outlined-input cursor-pointer" readonly placeholder=" ">
                     <label>Category *</label>
                     <i class="fa-solid fa-caret-down absolute right-4 top-4 text-gray-400"></i>
                 </div>
 
-                <div id="container-mode">
+                <div>
                     <p class="text-xs font-bold text-gray-400 mb-2 uppercase">Payment Mode *</p>
-                    <div id="payment-modes-container" class="flex flex-wrap gap-2"></div>
+                    <div id="edit-payment-modes-container" class="flex flex-wrap gap-2"></div>
                 </div>
             </main>
 
             <footer class="fixed-bottom flex border-t">
-                <button onclick="saveEntry()" class="w-full py-4 bg-indigo-600 text-white font-bold text-sm uppercase tracking-wider">SAVE</button>
+                <button onclick="saveEntry('edit')" class="w-full py-4 bg-indigo-600 text-white font-bold text-sm uppercase tracking-wider">UPDATE ENTRY</button>
             </footer>
         </div>
 
@@ -286,7 +348,7 @@
         <div id="view-category" class="view">
             <header class="bg-white border-b p-4 flex items-center justify-between">
                 <div class="flex items-center">
-                    <button onclick="navigateTo('form')" class="fa-solid fa-arrow-left mr-6 text-gray-700 text-lg"></button>
+                    <button id="cat-back-btn" class="fa-solid fa-arrow-left mr-6 text-gray-700 text-lg"></button>
                     <h1 class="font-bold text-lg text-gray-800">Choose Category</h1>
                 </div>
                 <button onclick="navigateTo('settings')" class="text-blue-600"><i class="fa-solid fa-gear"></i></button>
@@ -298,9 +360,11 @@
 
         <!-- ADD ITEM VIEW -->
         <div id="view-add-item" class="view">
-            <header class="bg-white border-b p-4 flex items-center">
-                <button onclick="navigateTo('form')" class="fa-solid fa-arrow-left mr-6 text-gray-700 text-lg"></button>
-                <h1 class="font-bold text-lg text-gray-800">Add Item Information</h1>
+            <header class="bg-white border-b p-4 flex items-center justify-between">
+                <div class="flex items-center">
+                    <button id="item-back-btn" class="fa-solid fa-arrow-left mr-6 text-gray-700 text-lg"></button>
+                    <h1 class="font-bold text-lg text-gray-800">Add Item Information</h1>
+                </div>
             </header>
             <main class="flex-1 overflow-y-auto bg-white p-6 space-y-8">
                 <div class="outlined-input-container">
@@ -317,7 +381,7 @@
                 </div>
             </main>
             <footer class="fixed-bottom p-4 border-t flex gap-4">
-                <button onclick="navigateTo('form')" class="flex-1 py-3 text-gray-500 font-bold text-sm uppercase">Cancel</button>
+                <button id="item-cancel-btn" class="flex-1 py-3 text-gray-500 font-bold text-sm uppercase">Cancel</button>
                 <button onclick="addItemToList()" class="flex-1 py-3 bg-blue-600 text-white rounded font-bold text-sm uppercase shadow-md">Add Item</button>
             </footer>
         </div>
@@ -375,6 +439,7 @@
         let currentCategory = "No Category";
         let currentPaymentMode = null; 
         let editingEntryId = null;
+        let activeFormType = 'form'; // 'form' or 'edit'
 
         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -423,10 +488,21 @@
             if (viewName === 'settings') renderSettings();
             if (viewName === 'dashboard') {
                 editingEntryId = null;
-                document.getElementById('btn-delete-entry').classList.add('hidden');
-                document.getElementById('input-amount').classList.remove('error');
-                document.getElementById('display-category').classList.remove('error');
             }
+        }
+
+        // Parent-aware Navigation Helpers
+        function openCategorySelect(parent) {
+            activeFormType = parent;
+            document.getElementById('cat-back-btn').onclick = () => navigateTo(parent);
+            navigateTo('category');
+        }
+
+        function openAddItem(parent) {
+            activeFormType = parent;
+            document.getElementById('item-back-btn').onclick = () => navigateTo(parent);
+            document.getElementById('item-cancel-btn').onclick = () => navigateTo(parent);
+            navigateTo('add-item');
         }
 
         function renderSettings() {
@@ -477,82 +553,75 @@
 
         function selectCategory(label) {
             currentCategory = label;
-            document.getElementById('display-category').value = label;
-            document.getElementById('display-category').classList.remove('error');
-            navigateTo('form');
+            const targetId = activeFormType === 'edit' ? 'edit-display-category' : 'display-category';
+            document.getElementById(targetId).value = label;
+            document.getElementById(targetId).classList.remove('error');
+            navigateTo(activeFormType);
         }
 
         function renderPaymentModes() {
-            const container = document.getElementById('payment-modes-container');
+            const containerId = activeFormType === 'edit' ? 'edit-payment-modes-container' : 'payment-modes-container';
+            const container = document.getElementById(containerId);
             container.innerHTML = prefs.paymentModes.map(mode => `
-                <div id="pay-mode-${mode.replace(/\s+/g, '-').toLowerCase()}" 
-                     onclick="setPaymentMode('${mode}')" 
+                <div onclick="setPaymentMode('${mode}')" 
                      class="px-5 py-2 rounded-full text-sm font-medium border transition-colors cursor-pointer ${currentPaymentMode === mode ? 'bg-blue-700 text-white border-blue-700' : 'bg-gray-100 text-gray-600 border-gray-100'}">
                     ${mode}
                 </div>
             `).join('');
         }
 
-        function openForm(type, id = null) {
-            editingEntryId = id;
-            const delBtn = document.getElementById('btn-delete-entry');
+        function openForm(type) {
+            activeFormType = 'form';
+            currentType = type;
+            currentEntryItems = [];
+            currentCategory = "No Category"; 
+            currentPaymentMode = null; 
             
-            if (id) {
-                // POPULATE EXISTING DATA
-                const entry = entries.find(e => e.id === id);
-                if (!entry) return;
-                
-                currentType = entry.type;
-                currentEntryItems = JSON.parse(JSON.stringify(entry.items));
-                currentCategory = entry.category;
-                currentPaymentMode = entry.mode;
-                
-                document.getElementById('input-amount').value = entry.amount;
-                document.getElementById('input-remark').value = entry.remark;
-                document.getElementById('display-category').value = entry.category;
-                
-                // POPULATE EXISTING TIME AND DATE
-                const dt = new Date(entry.timestamp);
-                
-                // YYYY-MM-DD for native picker
-                const y = dt.getFullYear();
-                const m = String(dt.getMonth() + 1).padStart(2, '0');
-                const d = String(dt.getDate()).padStart(2, '0');
-                document.getElementById('input-date-native').value = `${y}-${m}-${d}`;
-                
-                // HH:MM (24h) for native picker
-                const hh = String(dt.getHours()).padStart(2, '0');
-                const mm = String(dt.getMinutes()).padStart(2, '0');
-                document.getElementById('input-time-native').value = `${hh}:${mm}`;
-
-                document.getElementById('form-title').innerText = currentType === 'in' ? "Edit Cash In Entry" : "Edit Cash Out Entry";
-                delBtn.classList.remove('hidden');
-            } else {
-                // NEW ENTRY - RESET FIELDS
-                currentType = type;
-                currentEntryItems = [];
-                currentCategory = "No Category"; 
-                currentPaymentMode = null; 
-                document.getElementById('input-amount').value = "";
-                document.getElementById('input-remark').value = "";
-                document.getElementById('display-category').value = ""; 
-                
-                // DEFAULT TO CURRENT TIME/DATE
-                const now = new Date();
-                document.getElementById('input-date-native').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-                document.getElementById('input-time-native').value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-                
-                document.getElementById('form-title').innerText = type === 'in' ? "Add Cash In Entry" : "Add Cash Out Entry";
-                delBtn.classList.add('hidden');
-            }
+            document.getElementById('input-amount').value = "";
+            document.getElementById('input-remark').value = "";
+            document.getElementById('display-category').value = ""; 
+            
+            const now = new Date();
+            document.getElementById('input-date-native').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            document.getElementById('input-time-native').value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
             
             const title = document.getElementById('form-title');
+            title.innerText = type === 'in' ? "Add Cash In Entry" : "Add Cash Out Entry";
+            title.className = `font-bold text-lg ${type === 'in' ? 'text-green-700' : 'text-red-600'}`;
+
+            renderPaymentModes();
+            updateTimestampDisplay('form');
+            renderEntryItems();
+            navigateTo('form');
+        }
+
+        function openEditForm(id) {
+            activeFormType = 'edit';
+            editingEntryId = id;
+            const entry = entries.find(e => e.id === id);
+            if (!entry) return;
+
+            currentType = entry.type;
+            currentEntryItems = JSON.parse(JSON.stringify(entry.items));
+            currentCategory = entry.category;
+            currentPaymentMode = entry.mode;
+
+            document.getElementById('edit-input-amount').value = entry.amount;
+            document.getElementById('edit-input-remark').value = entry.remark;
+            document.getElementById('edit-display-category').value = entry.category;
+
+            const dt = new Date(entry.timestamp);
+            document.getElementById('edit-input-date-native').value = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+            document.getElementById('edit-input-time-native').value = `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
+
+            const title = document.getElementById('edit-form-title');
+            title.innerText = currentType === 'in' ? "Edit Cash In Entry" : "Edit Cash Out Entry";
             title.className = `font-bold text-lg ${currentType === 'in' ? 'text-green-700' : 'text-red-600'}`;
 
             renderPaymentModes();
-            updateTimestampDisplay();
+            updateTimestampDisplay('edit');
             renderEntryItems();
-            navigateTo('form');
+            navigateTo('edit');
         }
 
         function deleteCurrentEntry() {
@@ -564,19 +633,19 @@
             }
         }
 
-        function updateTimestampDisplay() {
-            const dateVal = document.getElementById('input-date-native').value;
-            const timeVal = document.getElementById('input-time-native').value;
+        function updateTimestampDisplay(prefix) {
+            const dateVal = document.getElementById(prefix + '-input-date-native').value;
+            const timeVal = document.getElementById(prefix + '-input-time-native').value;
             if(dateVal) {
                 const parts = dateVal.split('-');
-                document.getElementById('display-date').innerText = `${parts[2]}/${parts[1]}/${parts[0]}`;
+                document.getElementById(prefix + '-display-date').innerText = `${parts[2]}/${parts[1]}/${parts[0]}`;
             }
             if(timeVal) {
                 const parts = timeVal.split(':');
                 let h = parseInt(parts[0]);
                 const ampm = h >= 12 ? 'pm' : 'am';
                 let displayH = h % 12 || 12;
-                document.getElementById('display-time').innerText = `${displayH}:${parts[1]} ${ampm}`;
+                document.getElementById(prefix + '-display-time').innerText = `${displayH}:${parts[1]} ${ampm}`;
             }
         }
 
@@ -588,15 +657,20 @@
             const price = parseFloat(priceEl.value) || 0;
             const code = codeEl.value;
             if (!name) return;
+
             currentEntryItems.push({ id: Date.now(), name, price, code });
-            document.getElementById('input-amount').value = currentEntryItems.reduce((acc, item) => acc + item.price, 0);
+            
+            const targetAmtId = activeFormType === 'edit' ? 'edit-input-amount' : 'input-amount';
+            document.getElementById(targetAmtId).value = currentEntryItems.reduce((acc, item) => acc + item.price, 0);
+            
             nameEl.value = ""; codeEl.value = ""; priceEl.value = "";
             renderEntryItems();
-            navigateTo('form');
+            navigateTo(activeFormType);
         }
 
         function renderEntryItems() {
-            const container = document.getElementById('items-container');
+            const containerId = activeFormType === 'edit' ? 'edit-items-container' : 'items-container';
+            const container = document.getElementById(containerId);
             if (currentEntryItems.length === 0) { container.innerHTML = ''; return; }
             container.innerHTML = [...currentEntryItems].reverse().map((item, idx) => `
                 <div class="flex justify-between items-center p-3 bg-gray-50 rounded border border-gray-200">
@@ -613,7 +687,8 @@
 
         function removeItem(index) {
             currentEntryItems.splice(index, 1);
-            document.getElementById('input-amount').value = currentEntryItems.reduce((acc, i) => acc + i.price, 0) || "";
+            const targetAmtId = activeFormType === 'edit' ? 'edit-input-amount' : 'input-amount';
+            document.getElementById(targetAmtId).value = currentEntryItems.reduce((acc, i) => acc + i.price, 0) || "";
             renderEntryItems();
         }
 
@@ -622,9 +697,9 @@
             renderPaymentModes();
         }
 
-        function saveEntry() {
-            const amtInput = document.getElementById('input-amount');
-            const catInput = document.getElementById('display-category');
+        function saveEntry(prefix) {
+            const amtInput = document.getElementById(prefix === 'edit' ? 'edit-input-amount' : 'input-amount');
+            const catInput = document.getElementById(prefix === 'edit' ? 'edit-display-category' : 'display-category');
             
             let hasError = false;
             if (amtInput.value.trim() === "") {
@@ -651,22 +726,20 @@
             }
 
             const amt = parseFloat(amtInput.value);
-
-            // Construct timestamp from pickers to ensure visual/stored sync
-            const dateStr = document.getElementById('input-date-native').value;
-            const timeStr = document.getElementById('input-time-native').value;
+            const dateStr = document.getElementById(prefix === 'edit' ? 'edit-input-date-native' : 'input-date-native').value;
+            const timeStr = document.getElementById(prefix === 'edit' ? 'edit-input-time-native' : 'input-time-native').value;
             const newTimestamp = new Date(`${dateStr}T${timeStr}`).getTime();
 
             const entryData = {
                 type: currentType, 
                 amount: amt, 
-                remark: document.getElementById('input-remark').value,
+                remark: document.getElementById(prefix === 'edit' ? 'edit-input-remark' : 'input-remark').value,
                 category: currentCategory, 
                 items: [...currentEntryItems], 
-                date: document.getElementById('display-date').innerText,
-                time: document.getElementById('display-time').innerText, 
+                date: document.getElementById(prefix === 'edit' ? 'edit-display-date' : 'display-date').innerText,
+                time: document.getElementById(prefix === 'edit' ? 'edit-display-time' : 'display-time').innerText, 
                 mode: currentPaymentMode, 
-                timestamp: newTimestamp, // Use value from pickers
+                timestamp: newTimestamp,
                 id: editingEntryId || Date.now()
             };
 
@@ -719,7 +792,7 @@
                 }
                 const itemDetails = e.items.map(i => `${i.name}@${i.code||''}@${i.price}`).join('\n');
                 html += `
-                <div class="bg-white p-4 mb-2 shadow-sm cursor-pointer active:bg-gray-50 transition-colors" onclick="openForm(null, ${e.id})">
+                <div class="bg-white p-4 mb-2 shadow-sm cursor-pointer active:bg-gray-50 transition-colors" onclick="openEditForm(${e.id})">
                     <div class="flex justify-between items-start mb-2">
                         <div class="flex gap-2">
                             <span class="tag-category">${e.category}</span>
