@@ -32,7 +32,6 @@
         .cash-in-bg { background-color: #1b5e20; }
         .cash-out-bg { background-color: #c62828; }
 
-        /* Material Outlined Input Style */
         .outlined-input-container {
             position: relative;
             margin-top: 10px;
@@ -60,7 +59,6 @@
         }
         .outlined-input:focus { border-color: #4863d4 !important; }
 
-        /* Tag Styles */
         .tag-category {
             background-color: #f0f2ff;
             color: #3f51b5;
@@ -112,7 +110,6 @@
         .picker-container { position: relative; display: flex; align-items: center; cursor: pointer; }
         .native-picker { position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
 
-        /* CUSTOM MODAL OVERLAY */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -126,7 +123,6 @@
             z-index: 1000;
         }
 
-        /* Settings List Items */
         .settings-item {
             background: white;
             padding: 12px 16px;
@@ -206,9 +202,14 @@
                     <button onclick="navigateTo('dashboard')" class="fa-solid fa-arrow-left mr-4 text-gray-600 text-lg"></button>
                     <h1 id="form-title" class="font-bold text-lg">Add Entry</h1>
                 </div>
-                <button onclick="navigateTo('settings')" class="text-blue-600">
-                    <i class="fa-solid fa-gear text-lg"></i>
-                </button>
+                <div class="flex items-center space-x-4">
+                    <button id="btn-delete-entry" onclick="deleteCurrentEntry()" class="text-red-500 hidden">
+                        <i class="fa-solid fa-trash-can text-lg"></i>
+                    </button>
+                    <button onclick="navigateTo('settings')" class="text-blue-600">
+                        <i class="fa-solid fa-gear text-lg"></i>
+                    </button>
+                </div>
             </header>
 
             <main class="flex-1 overflow-y-auto bg-white p-4 pb-24 space-y-4">
@@ -250,9 +251,7 @@
 
                 <div>
                     <p class="text-xs font-bold text-gray-400 mb-2 uppercase">Payment Mode</p>
-                    <div id="payment-modes-container" class="flex flex-wrap gap-2">
-                        <!-- Dynamic payment modes injected here -->
-                    </div>
+                    <div id="payment-modes-container" class="flex flex-wrap gap-2"></div>
                 </div>
             </main>
 
@@ -302,14 +301,13 @@
             </footer>
         </div>
 
-        <!-- SETTINGS VIEW (NEW) -->
+        <!-- SETTINGS VIEW -->
         <div id="view-settings" class="view">
             <header class="bg-white border-b p-4 flex items-center">
                 <button onclick="navigateTo('dashboard')" class="fa-solid fa-arrow-left mr-6 text-gray-700 text-lg"></button>
                 <h1 class="font-bold text-lg text-gray-800">Preferences</h1>
             </header>
             <main class="flex-1 overflow-y-auto p-4 space-y-8">
-                <!-- Categories Management -->
                 <div>
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="font-bold text-gray-600 uppercase text-xs">Manage Categories</h2>
@@ -317,8 +315,6 @@
                     </div>
                     <div id="settings-categories-list" class="rounded-lg overflow-hidden border"></div>
                 </div>
-
-                <!-- Payment Modes Management -->
                 <div>
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="font-bold text-gray-600 uppercase text-xs">Manage Payment Modes</h2>
@@ -348,8 +344,6 @@
         const PREFS_KEY = 'daybook_preferences';
 
         let entries = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-        
-        // Initialize Preferences from Storage or Defaults
         let prefs = JSON.parse(localStorage.getItem(PREFS_KEY)) || {
             categories: ['No Category', '📖 Due paid', 'Sports 🏋️', 'Studio 📷', 'Expense 📈', 'Cash Online exchange 💱'],
             paymentModes: ['Cash', 'Paytm Business', 'Online', 'Bank Transfer']
@@ -399,9 +393,12 @@
             
             if (viewName === 'category') renderCategoryCards();
             if (viewName === 'settings') renderSettings();
+            if (viewName === 'dashboard') {
+                editingEntryId = null;
+                document.getElementById('btn-delete-entry').classList.add('hidden');
+            }
         }
 
-        // --- PREFERENCES UI LOGIC ---
         function renderSettings() {
             const catList = document.getElementById('settings-categories-list');
             const modeList = document.getElementById('settings-modes-list');
@@ -432,7 +429,7 @@
         }
 
         function removePrefItem(type, index) {
-            if (prefs[type].length <= 1) return; // Prevent empty lists
+            if (prefs[type].length <= 1) return;
             prefs[type].splice(index, 1);
             savePrefs();
             renderSettings();
@@ -467,21 +464,20 @@
 
         function openForm(type, id = null) {
             editingEntryId = id;
+            const delBtn = document.getElementById('btn-delete-entry');
             
             if (id) {
                 const entry = entries.find(e => e.id === id);
+                if (!entry) return;
                 currentType = entry.type;
                 currentEntryItems = JSON.parse(JSON.stringify(entry.items));
                 currentCategory = entry.category;
                 currentPaymentMode = entry.mode;
-                
                 document.getElementById('input-amount').value = entry.amount;
                 document.getElementById('input-remark').value = entry.remark;
                 document.getElementById('display-category').value = entry.category;
-                
                 const dParts = entry.date.split('/');
                 document.getElementById('input-date-native').value = `${dParts[2]}-${dParts[1]}-${dParts[0]}`;
-                
                 const tMatch = entry.time.match(/(\d+):(\d+)\s*(am|pm)/i);
                 if (tMatch) {
                     let h = parseInt(tMatch[1]);
@@ -489,8 +485,8 @@
                     if (tMatch[3].toLowerCase() === 'am' && h === 12) h = 0;
                     document.getElementById('input-time-native').value = `${String(h).padStart(2, '0')}:${tMatch[2]}`;
                 }
-
                 document.getElementById('form-title').innerText = currentType === 'in' ? "Edit Cash In Entry" : "Edit Cash Out Entry";
+                delBtn.classList.remove('hidden');
             } else {
                 currentType = type;
                 currentEntryItems = [];
@@ -499,21 +495,27 @@
                 document.getElementById('input-amount').value = "";
                 document.getElementById('input-remark').value = "";
                 document.getElementById('display-category').value = currentCategory;
-                
                 const now = new Date();
                 document.getElementById('input-date-native').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
                 document.getElementById('input-time-native').value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-                
                 document.getElementById('form-title').innerText = type === 'in' ? "Add Cash In Entry" : "Add Cash Out Entry";
+                delBtn.classList.add('hidden');
             }
-            
             const title = document.getElementById('form-title');
             title.className = `font-bold text-lg ${currentType === 'in' ? 'text-green-700' : 'text-red-600'}`;
-
             renderPaymentModes();
             updateTimestampDisplay();
             renderEntryItems();
             navigateTo('form');
+        }
+
+        function deleteCurrentEntry() {
+            if (editingEntryId && confirm("Delete this specific entry?")) {
+                entries = entries.filter(e => e.id !== editingEntryId);
+                saveToLocalStorage();
+                renderDashboard();
+                navigateTo('dashboard');
+            }
         }
 
         function updateTimestampDisplay() {
@@ -536,20 +538,13 @@
             const nameEl = document.getElementById('modal-item-name');
             const codeEl = document.getElementById('modal-item-code');
             const priceEl = document.getElementById('modal-item-price');
-
             const name = nameEl.value;
             const price = parseFloat(priceEl.value) || 0;
             const code = codeEl.value;
-
             if (!name) return;
-            
             currentEntryItems.push({ id: Date.now(), name, price, code });
             document.getElementById('input-amount').value = currentEntryItems.reduce((acc, item) => acc + item.price, 0);
-
-            nameEl.value = "";
-            codeEl.value = "";
-            priceEl.value = "";
-
+            nameEl.value = ""; codeEl.value = ""; priceEl.value = "";
             renderEntryItems();
             navigateTo('form');
         }
@@ -584,7 +579,6 @@
         function saveEntry() {
             const amt = parseFloat(document.getElementById('input-amount').value);
             if (!amt) return;
-
             const entryData = {
                 type: currentType, 
                 amount: amt, 
@@ -597,14 +591,12 @@
                 timestamp: editingEntryId ? entries.find(e => e.id === editingEntryId).timestamp : Date.now(),
                 id: editingEntryId || Date.now()
             };
-
             if (editingEntryId) {
                 const index = entries.findIndex(e => e.id === editingEntryId);
                 entries[index] = entryData;
             } else {
                 entries.push(entryData);
             }
-
             saveToLocalStorage();
             renderDashboard();
             navigateTo('dashboard');
@@ -622,29 +614,21 @@
                 countText.innerText = "Showing 0 entries";
                 return;
             }
-
-            let running = 0;
-            let totalIn = 0;
-            let totalOut = 0;
-            
+            let running = 0; let totalIn = 0; let totalOut = 0;
             const chronological = [...entries].sort((a,b) => a.timestamp - b.timestamp);
             chronological.forEach(e => {
                 if(e.type === 'in') { running += e.amount; totalIn += e.amount; }
                 else { running -= e.amount; totalOut += e.amount; }
                 e.runningBalance = running;
             });
-
             document.getElementById('summary-in').innerText = totalIn.toLocaleString();
             document.getElementById('summary-out').innerText = totalOut.toLocaleString();
             const net = totalIn - totalOut;
             document.getElementById('summary-net').innerText = net.toLocaleString();
             document.getElementById('summary-net').className = `font-bold text-lg ${net >= 0 ? 'text-green-700' : 'text-red-700'}`;
             countText.innerText = `Showing ${entries.length} entries`;
-
             const displayList = [...chronological].reverse();
-            let currentHeaderDate = "";
-            let html = "";
-
+            let currentHeaderDate = ""; let html = "";
             displayList.forEach(e => {
                 if(e.date !== currentHeaderDate) {
                     currentHeaderDate = e.date;
@@ -653,9 +637,7 @@
                     const dateString = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
                     html += `<div class="p-4 text-xs font-bold text-gray-500">${dateString}</div>`;
                 }
-
                 const itemDetails = e.items.map(i => `${i.name}@${i.code||''}@${i.price}`).join('\n');
-
                 html += `
                 <div class="bg-white p-4 mb-2 shadow-sm cursor-pointer active:bg-gray-50 transition-colors" onclick="openForm(null, ${e.id})">
                     <div class="flex justify-between items-start mb-2">
@@ -698,13 +680,22 @@
             };
             const rows = [...entries].sort((a,b) => a.timestamp - b.timestamp).map(e => {
                 const itemDetails = e.items.map(i => `${i.name}@${i.code||''}@${i.price}`).join('\n');
-                const finalRemark = itemDetails + (e.remark ? `\n\nRemarks: ${e.remark}` : "");
+                
+                // NEW SANITIZATION LOGIC
+                const itemBlock = itemDetails ? itemDetails : "";
+                const remarkBlock = e.remark ? `Remarks: ${e.remark}` : "";
+                const finalRemark = (itemBlock && remarkBlock) ? `${itemBlock}\n\n${remarkBlock}` : (itemBlock || remarkBlock);
+
+                // Check for placeholder "No Category"
+                const csvCategory = (e.category === "No Category" || !e.category) ? "" : e.category;
+                const csvMode = !e.mode ? "" : e.mode;
+
                 return [
                     escape(formatCSVDate(e.date)),
                     escape(e.time.toUpperCase()), 
                     escape(finalRemark),
-                    escape(e.category),
-                    escape(e.mode),
+                    escape(csvCategory),
+                    escape(csvMode),
                     e.type === 'in' ? e.amount : "",
                     e.type === 'out' ? e.amount : ""
                 ].join(",");
